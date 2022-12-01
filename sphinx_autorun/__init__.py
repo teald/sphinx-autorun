@@ -38,6 +38,10 @@ class AutoRun:
         cls.config.update(app.builder.config.autorun_languages)
 
 
+class Session:
+    pass
+
+
 class RunBlock(Directive):
     has_content = True
     required_arguments = 1
@@ -45,7 +49,34 @@ class RunBlock(Directive):
     final_argument_whitespace = False
     option_spec = {
         "linenos": directives.flag,
+        "filewide": directives.flag
     }
+
+    # Information about the current session. Should be updated every page.
+    session = None
+    current_file = None
+
+    def _run_code(self, filewide=False):
+        if not filewide:
+            return self._run_without_session()
+
+        else:
+            raise NotImplementedError
+
+    def _run_without_session(self, args):
+        proc = Popen(args, bufsize=1, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+        # run the code
+        stdout, stderr = proc.communicate(code)
+
+        # process output
+        if stdout:
+            out = stdout.decode(output_encoding)
+        if stderr:
+            out = stderr.decode(output_encoding)
+
+        return out
+
 
     def run(self):
         config = AutoRun.config
@@ -65,15 +96,6 @@ class RunBlock(Directive):
         proc = Popen(args, bufsize=1, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         codelines = (line[prefix_chars:] for line in self.content)
         code = "\n".join(codelines).encode(input_encoding)
-
-        # Run the code
-        stdout, stderr = proc.communicate(code)
-
-        # Process output
-        if stdout:
-            out = stdout.decode(output_encoding)
-        if stderr:
-            out = stderr.decode(output_encoding)
 
         # Get the original code with prefixes
         if show_source:
